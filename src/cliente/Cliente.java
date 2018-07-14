@@ -20,6 +20,9 @@ public class Cliente extends Thread {
 	public static final int ESPERANDO_LOGIN = 0;
 	public static final int LOGGEADO = 1;
 	public static final int USUARIO_EN_USO = 2;
+	public static final int USUARIO_EXISTENTE = 9;
+	public static final int REGISTRO_EXITOSO = 10;
+	public static final int USUARIO_INVALIDO = 11;
 	
 	boolean escuchando = true; 
 	private Socket cliente;
@@ -81,10 +84,24 @@ public class Cliente extends Thread {
 			case Mensaje.ACTUALIZAR_SALAS:
 				actualizarSalas(msg);
 				break;
+			case Mensaje.USUARIO_EXISTENTE:
+				estadoInexistente(msg);
+				break;
+			case Mensaje.REGISTRO_EXITOSO:
+				estadoRegistroExitoso(msg);
+				break;
 			default:
 				break;
 			}
 		}
+	}
+
+	private void estadoRegistroExitoso(Mensaje msg) {
+		this.estado = REGISTRO_EXITOSO;
+	}
+
+	private void estadoInexistente(Mensaje msg) {
+		this.estado = USUARIO_EXISTENTE;
 	}
 
 	private void actualizarSalas(Mensaje msg) {
@@ -152,10 +169,11 @@ public class Cliente extends Thread {
 
 	private void login(Mensaje msg) {
 		System.out.println("en login");
-		if (msg.getTipo() == 7) {
+		if (msg.getTipo() == 11) {
+			this.estado = USUARIO_INVALIDO;
+		} else if (msg.getTipo() == 7) {
 			this.estado = USUARIO_EN_USO;
-		}
-		else {
+		} else {
 			this.usuario = msg.getContenido();
 			estado = LOGGEADO;
 			

@@ -11,6 +11,8 @@ import java.util.HashMap;
 import com.google.gson.Gson;
 
 import cliente.Sala;
+import dataAccess.DAUsuario;
+import modelos.Usuario;
 
 public class ChatHandler extends Thread {
 	public final int ESPERANDO_LOGIN = 0;
@@ -48,7 +50,7 @@ public class ChatHandler extends Thread {
 	}
 
 	private void procesar(Mensaje msg) {
-		if (this.estado == ESPERANDO_LOGIN) {
+		if (this.estado == ESPERANDO_LOGIN && msg.getTipo() != Mensaje.REGISTRO) {
 			login(msg);
 		} else {
 			switch (msg.getTipo()) {
@@ -64,10 +66,30 @@ public class ChatHandler extends Thread {
 			case Mensaje.NUEVA_SALA:
 				crearSala(msg);
 				break;
+			case Mensaje.REGISTRO:
+				registrar(msg);
+				break;
 			default:
 				break;
 			}
 		}
+	}
+
+	private void registrar(Mensaje msg) {
+		Mensaje a = new Mensaje();
+		String[] cadena = msg.getContenido().split("&");
+		DAUsuario usuarioDB = new DAUsuario();
+		if (usuarioDB.obtenerUsuario(cadena[0]) == null) {
+			Usuario usuario = new Usuario(cadena[0], cadena[1], cadena[2], cadena[3], cadena[4]);
+			usuarioDB.ingresarUsuario(usuario);
+			a.setContenido("registro exitoso");
+			a.setTipo(Mensaje.REGISTRO_EXITOSO);
+		}
+		else {
+			a.setContenido("usuario existente");
+			a.setTipo(Mensaje.USUARIO_EXISTENTE);
+		}
+		this.enviar(a);
 	}
 
 	private void crearSala(Mensaje msg) {
@@ -95,13 +117,21 @@ public class ChatHandler extends Thread {
 				this.enviar(a);
 			}
 		}
-		System.out.println("Usuario valido");
-		enviar(msg);
-		estado = LOGGEADO;
-		clientes.put(usuarioEntrante, this);
-		this.usuario = usuarioEntrante;
-		actualizarUsuarios();
-		actualizarSalas();
+		String[] cadena = msg.getContenido().split("&");
+		if(new DAUsuario().obtenerUsuarioPorCredenciales(cadena[0], cadena[1]) != null) {
+			System.out.println("Usuario valido");
+			enviar(msg);
+			estado = LOGGEADO;
+			clientes.put(usuarioEntrante, this);
+			this.usuario = usuarioEntrante;
+			actualizarUsuarios();
+			actualizarSalas();
+		} else {
+			Mensaje a = new Mensaje();
+			a.setContenido("usuario invalido");// usuario ya existe
+			a.setTipo(Mensaje.USUARIO_INVALIDO);
+			this.enviar(a);
+		}
 	}
 
 	private void actualizarUsuarios() {

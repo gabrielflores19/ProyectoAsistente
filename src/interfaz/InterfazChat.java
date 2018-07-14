@@ -75,10 +75,6 @@ public class InterfazChat {
 				cliente.enviar(m);
 			}
 		});
-		
-		tpChat.setEditable(false);
-		
-		frame.getRootPane().setDefaultButton(btnEnviar);
 
 		frame.setVisible(true);
 	}
